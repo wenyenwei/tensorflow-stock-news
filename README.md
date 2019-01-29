@@ -2,12 +2,18 @@
 
 ### File Index
 
+#### Parsing News Data
+
 [Webcrawling Reuters News - NodeJs + Cheerio](https://github.com/wenyenwei/tensorflow-stock-news/blob/master/rnews.js)
 
 [Webcrawling Result - Apple Stock News from 2013-2018](https://github.com/wenyenwei/tensorflow-stock-news/blob/master/rnews_apple.txt)
 
+#### Stock Price Graphs
+
 [Stock Price Graph 2013-2018](https://github.com/wenyenwei/tensorflow-stock-news/blob/master/data_image.png)
 
 [Stock Market Capital Graph 2013-2018](https://github.com/wenyenwei/tensorflow-stock-news/blob/master/data_image_vol.png)
+
+#### Data Preprocessing
 
 [Data Processing - Python Pandas](https://github.com/wenyenwei/tensorflow-stock-news/blob/master/rnews.py)
