@@ -8,18 +8,24 @@ Predicting a Stock Price using [S&P 500 data](https://www.kaggle.com/camnugent/s
 
 ## File Index
 
-### Parsing News Data
+### :bento:  Parsing News Data 
 
 [Webcrawling Reuters News - NodeJs + Cheerio](https://github.com/wenyenwei/tensorflow-stock-news/blob/master/rnews.js)
 
 [Webcrawling Result - Apple Stock News from 2013-2018](https://github.com/wenyenwei/tensorflow-stock-news/blob/master/rnews_apple.txt)
 
-### Stock Price Graphs
+### :chart_with_upwards_trend:  Stock Price Graphs
 
 [Stock Price Graph 2013-2018](https://github.com/wenyenwei/tensorflow-stock-news/blob/master/data_image.png)
 
 [Stock Market Capital Graph 2013-2018](https://github.com/wenyenwei/tensorflow-stock-news/blob/master/data_image_vol.png)
 
-### Data Preprocessing
+### Training
 
-[Data Processing - Python Pandas](https://github.com/wenyenwei/tensorflow-stock-news/blob/master/rnews.py)
+[:bookmark: version1](https://github.com/wenyenwei/tensorflow-stock-news/blob/master/rnews.py)
+
+[:bookmark: version2](https://github.com/wenyenwei/tensorflow-stock-news/blob/master/rnews2.py)
+
+### Report
+
+[:construction: Drafting Report](https://docs.google.com/document/d/1IXd_1U-Ucj39PColOH4dgrfw84PoLc9uKmLs0Wbm11M/edit?usp=sharing)
