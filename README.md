@@ -19,7 +19,7 @@ Predicting a Stock Price using [S&P 500 data](https://www.kaggle.com/camnugent/s
 
 [Stock Market Capital Graph 2013-2018](https://github.com/wenyenwei/tensorflow-stock-news/blob/master/data_image_vol.png)
 
-### Training
+### :alembic: Training
 
 [:bookmark: version1](https://github.com/wenyenwei/tensorflow-stock-news/blob/master/rnews.py)
 
