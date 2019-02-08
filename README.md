@@ -3,8 +3,7 @@
 Predicting a Stock Price using [S&P 500 data](https://www.kaggle.com/camnugent/sandp500) and [news](https://www.reuters.com/finance/stocks/company-news/AAPL.OQ).
 
 ## Target Companies
-* [Apple](https://www.apple.com/)
-* TBD..
+* [:apple: Apple](https://www.apple.com/)
 
 ## File Index
 
