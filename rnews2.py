@@ -52,11 +52,9 @@ class MainRNN():
 		# get shape Y (K)
 		Y_sample_size = Y.shape
 
-		# get hidden layer
-		hidden_layer = self.hidden_layer
-
 		# init weight and bias
-
+		weights = tf.Variable(tf.random_normal([self.hidden_layer, self.output_feature_size]))
+		biases = tf.Variable(tf.random_normal([self.output_feature_size]))
 
 		# placeholder for graph input
 		tfX = tf.placeholder(tf.float32, shape=[None, X_seq_size, X_features_siz], name='inputX')
@@ -78,19 +76,40 @@ class MainRNN():
 
 		# transpose output back
 		outputs = tf.transpose(outputs, [1, 0, 2])
+		tf.reshape(outputs, [-1, self.hidden_layer])
 
 		# model(logits)
 
-		# prediction into classes
+
+		# prediction
+		prediction = tf.matmul(outputs, weights) + biases
 
 		# cost function
+		loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=prediction, labels=tfY))
 
 		# optimizer
+		optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001).minimize(loss)
+
+		# evaluate model
+		correct_pred = tf.math.less(tf.math.abs(pred - tfY), tf.math.multiply(tfY))
+		accuracy = tf.math.divide(correct_pred, Y_sample_size)
+
+		# global init
+		init = tf.global_variables_initializer()
+
+		# start training
+		with tf.Session() as sess:
+
+			sess.run(init)
+
+
 
 
 
 	def run_prediction():
 		X, Y = get_formated_data()
+		process_train(X, Y)
+
 
 if __name__ == '__main__':
 	run_prediction()
