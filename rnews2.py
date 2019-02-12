@@ -1,6 +1,8 @@
 import tensorflow as tf
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.utils import shuffle
 
 class MainRNN():
 	def __init__(self):
@@ -8,6 +10,7 @@ class MainRNN():
 		self.batch_size=self.data_time_range
 		self.hidden_layer=1
 		self.output_feature_size=1
+		self.epochs=10
 
 	def x_y_to_seq(self, X, Y, batch_size):
 		# X = [[[yesterday_stock_data(5)], [today_stock_data(5)], [tomorrow_stock_data(5)], ...batch_size], [repeat]]
@@ -36,7 +39,7 @@ class MainRNN():
 		    y_val = df.loc[(df['Name'] == "AAPL") & (df['date'] == row['date'])].values[0][4] # close price
 		    Y.append(y_val)
 		
-		X, Y = x_y_to_seq(X, self.batch_size)
+		X, Y = self.x_y_to_seq(X, self.batch_size)
 
 		# what should be the format of Y
 		# regressor? classifier?
@@ -57,7 +60,7 @@ class MainRNN():
 		biases = tf.Variable(tf.random_normal([self.output_feature_size]))
 
 		# placeholder for graph input
-		tfX = tf.placeholder(tf.float32, shape=[None, X_seq_size, X_features_siz], name='inputX')
+		tfX = tf.placeholder(tf.float32, shape=[None, X_seq_size, X_features_size], name='inputX')
 		tfY = tf.placeholder(tf.float32, shape=[None, self.output_feature_size], name='inputY')
 
 		# transposeX
@@ -69,7 +72,7 @@ class MainRNN():
 		lstmCell = tf.contrib.nn.BasicLSTMCell(self.hidden_layer)
 
 		# create RNN unit
-		outputs, states = tf.contrib.nn.rnn(cell=lstmCell, inputs=tfX, dtype=float32, sequence_length=self.batch_size)
+		outputs, states = tf.contrib.nn.rnn(cell=lstmCell, inputs=tfX, dtype=tf.float32, sequence_length=self.batch_size)
 
 		# get rnn output
 		outputs = tf.stack(outputs)
@@ -91,8 +94,12 @@ class MainRNN():
 		optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001).minimize(loss)
 
 		# evaluate model
-		correct_pred = tf.math.less(tf.math.abs(pred - tfY), tf.math.multiply(tfY))
+		correct_pred = tf.math.less(tf.math.abs(prediction - tfY), tf.math.multiply(tfY))
 		accuracy = tf.math.divide(correct_pred, Y_sample_size)
+
+		# cost[] and accuracies[]
+		costs = []
+		accuracies = []
 
 		# global init
 		init = tf.global_variables_initializer()
@@ -102,14 +109,32 @@ class MainRNN():
 
 			sess.run(init)
 
+			for epoch in range(self.epochs):
 
+				X, Y = shuffle(X, Y)				
+				cost = 0
+				accuracy = 0
+				for batch in range(X_sample_size):
+					batchX = X[batch]
+					batchY = Y[batch]
+					_, cost_out, accuracy_out = sess.run([optimizer, loss, accuracy], feed_dict={tfX: batchX, tfY: batchY})
+					
+					cost += cost_out
+					accuracy += accuracy_out
 
+				costs.append(cost)
+				accuracies.append(accuracy)
 
+		plt.plot(costs)
+		plt.show()
+        
+		plt.plot(accuracies)
+		plt.show()
 
-	def run_prediction():
-		X, Y = get_formated_data()
-		process_train(X, Y)
+	def run_prediction(self):
+		X, Y = self.get_formated_data()
+		self.process_train(X, Y)
 
 
 if __name__ == '__main__':
-	run_prediction()
+    MainRNN().run_prediction()
