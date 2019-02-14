@@ -58,6 +58,9 @@ class MainRNN():
 
 		# get shape Y (K)
 		Y_sample_size = Y.shape
+        
+		print("x sample size: " + str(X_sample_size))
+		print("y sample size: " + str(Y_sample_size))
 
 		# init weight and bias
 		weights = tf.Variable(tf.random_normal([self.hidden_layer, self.output_feature_size]))
@@ -121,7 +124,8 @@ class MainRNN():
 				for batch in range(X_sample_size):
 					batchX = X[batch]
 					batchY = Y[batch]
-					_, cost_out, correct_pred_out = sess.run([optimizer, loss, correct_pred], feed_dict={tfX: batchX.reshape(X_seq_size, 1, X_features_size), tfY: batchY})
+                    
+					_, cost_out, correct_pred_out = sess.run([optimizer, loss, correct_pred], feed_dict={tfX: batchX.reshape(X_seq_size, 1, X_features_size), tfY: batchY.reshape(1, self.output_feature_size)})
 					
 					cost += cost_out
 					accuracy += correct_pred_out
@@ -145,4 +149,4 @@ class MainRNN():
 
 
 if __name__ == '__main__':
-    MainRNN().run_prediction()
+    X, Y = MainRNN().run_prediction()
