@@ -10,16 +10,19 @@ class MainRNN():
 		self.batch_size=self.data_time_range
 		self.hidden_layer=1
 		self.output_feature_size=1
-		self.epochs=10
+		self.epochs=3
+		self.data_size=self.batch_size*300
+		self.error_rate=0.001
 
-	def x_y_to_seq(self, X, Y, batch_size):
+	def x_y_to_seq(self, X, Y):
 		# X = [[[yesterday_stock_data(5)], [today_stock_data(5)], [tomorrow_stock_data(5)], ...batch_size], [repeat]]
 		newX = []
 		newY = []
-		
-		for i in range(len(X)):
-			newX.append(X[i * self.batch_size : i * self.batch_size + self.batch_size])
-			newY.append(Y[i * self.batch_size + self.batch_size - 1])
+		print('lenX: ' + str(len(X) / self.batch_size))
+		for i in range(int(len(X) / self.batch_size)):
+			print((i + 1) * self.batch_size - 1)
+			newX.append(X[i * self.batch_size : (i + 1) * self.batch_size])
+			newY.append(Y[(i + 1) * self.batch_size - 1])
 
 		return newX, newY
 
@@ -29,7 +32,7 @@ class MainRNN():
 		df = df.sort_values('date').reset_index(drop=True)
 		
 		# process different stock symbols
-		df_symbols_encoded = pd.get_dummies(df, columns=['Name'], prefix=['symbol'])
+		df_symbols_encoded = pd.get_dummies(df, columns=['Name'], prefix=['symbol'])[:self.data_size]
 
 		# match X and Y with date
 		X = []
@@ -38,8 +41,9 @@ class MainRNN():
 		    X.append(row.values[1:])
 		    y_val = df.loc[(df['Name'] == "AAPL") & (df['date'] == row['date'])].values[0][4] # close price
 		    Y.append(y_val)
+		    print(index)
 		
-		X, Y = self.x_y_to_seq(X, self.batch_size)
+		X, Y = self.x_y_to_seq(X, Y)
 
 		# what should be the format of Y
 		# regressor? classifier?
@@ -69,17 +73,17 @@ class MainRNN():
 		# target = reshape Y
 
 		# define lstm cell
-		lstmCell = tf.contrib.nn.BasicLSTMCell(self.hidden_layer)
+		lstmCell = tf.nn.rnn_cell.BasicLSTMCell(self.hidden_layer)
 
 		# create RNN unit
-		outputs, states = tf.contrib.nn.rnn(cell=lstmCell, inputs=tfX, dtype=tf.float32, sequence_length=self.batch_size)
+		outputs, states = tf.nn.dynamic_rnn(cell=lstmCell, inputs=tfX, dtype=tf.float32)
 
 		# get rnn output
 		outputs = tf.stack(outputs)
 
 		# transpose output back
 		outputs = tf.transpose(outputs, [1, 0, 2])
-		tf.reshape(outputs, [-1, self.hidden_layer])
+		outputs = tf.reshape(outputs, [-1, self.hidden_layer])
 
 		# model(logits)
 
@@ -94,8 +98,8 @@ class MainRNN():
 		optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001).minimize(loss)
 
 		# evaluate model
-		correct_pred = tf.math.less(tf.math.abs(prediction - tfY), tf.math.multiply(tfY))
-		accuracy = tf.math.divide(correct_pred, Y_sample_size)
+		correct_pred = tf.cast(tf.math.less(tf.abs(prediction - tfY), tf.multiply(tfY, self.error_rate)), tf.float32)
+		# accuracy = tf.divide(correct_pred, Y_sample_size)
 
 		# cost[] and accuracies[]
 		costs = []
@@ -117,13 +121,17 @@ class MainRNN():
 				for batch in range(X_sample_size):
 					batchX = X[batch]
 					batchY = Y[batch]
-					_, cost_out, accuracy_out = sess.run([optimizer, loss, accuracy], feed_dict={tfX: batchX, tfY: batchY})
+					_, cost_out, correct_pred_out = sess.run([optimizer, loss, correct_pred], feed_dict={tfX: batchX.reshape(X_seq_size, 1, X_features_size), tfY: batchY})
 					
 					cost += cost_out
-					accuracy += accuracy_out
+					accuracy += correct_pred_out
+                    
+					print('cost: ' + cost)
+					print('accuracy: ' + accuracy / batch)
 
 				costs.append(cost)
-				accuracies.append(accuracy)
+				accuracies.append(accuracy / batch)
+				print('epoch: ' + epoch)
 
 		plt.plot(costs)
 		plt.show()
