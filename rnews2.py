@@ -12,7 +12,6 @@ class MainRNN():
 		self.output_feature_size=1
 		self.epochs=3
 		self.data_size=self.batch_size*300
-		self.error_rate=0.001
 
 	def x_y_to_seq(self, X, Y):
 		# X = [[[yesterday_stock_data(5)], [today_stock_data(5)], [tomorrow_stock_data(5)], ...batch_size], [repeat]]
@@ -58,9 +57,6 @@ class MainRNN():
 
 		# get shape Y (K)
 		Y_sample_size = Y.shape
-        
-		print("x sample size: " + str(X_sample_size))
-		print("y sample size: " + str(Y_sample_size))
 
 		# init weight and bias
 		weights = tf.Variable(tf.random_normal([self.hidden_layer, self.output_feature_size]))
@@ -101,8 +97,8 @@ class MainRNN():
 		optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001).minimize(loss)
 
 		# evaluate model
-		correct_pred = tf.cast(tf.math.less(tf.abs(prediction - tfY), tf.multiply(tfY, self.error_rate)), tf.float32)
-		# accuracy = tf.divide(correct_pred, Y_sample_size)
+		correct_pred = tf.math.less(tf.math(prediction - tfY), tf.multiply(tfY))
+		accuracy = tf.divide(correct_pred, Y_sample_size)
 
 		# cost[] and accuracies[]
 		costs = []
@@ -124,17 +120,16 @@ class MainRNN():
 				for batch in range(X_sample_size):
 					batchX = X[batch]
 					batchY = Y[batch]
-                    
-					_, cost_out, correct_pred_out = sess.run([optimizer, loss, correct_pred], feed_dict={tfX: batchX.reshape(X_seq_size, 1, X_features_size), tfY: batchY.reshape(1, self.output_feature_size)})
+					_, cost_out, accuracy_out = sess.run([optimizer, loss, accuracy], feed_dict={tfX: batchX, tfY: batchY})
 					
 					cost += cost_out
-					accuracy += correct_pred_out
+					accuracy += accuracy_out
                     
 					print('cost: ' + cost)
-					print('accuracy: ' + accuracy / batch)
+					print('accuracy: ' + accuracy)
 
 				costs.append(cost)
-				accuracies.append(accuracy / batch)
+				accuracies.append(accuracy)
 				print('epoch: ' + epoch)
 
 		plt.plot(costs)
@@ -149,4 +144,4 @@ class MainRNN():
 
 
 if __name__ == '__main__':
-    X, Y = MainRNN().run_prediction()
+    MainRNN().run_prediction()
