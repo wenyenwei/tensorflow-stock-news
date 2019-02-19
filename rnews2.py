@@ -11,7 +11,8 @@ class MainRNN():
 		self.hidden_layer=1
 		self.output_feature_size=1
 		self.epochs=3
-		self.data_size=self.batch_size*300
+		self.data_size=self.batch_size*1000
+		self.error_rate=0.1
 
 	def x_y_to_seq(self, X, Y):
 		# X = [[[yesterday_stock_data(5)], [today_stock_data(5)], [tomorrow_stock_data(5)], ...batch_size], [repeat]]
@@ -82,7 +83,13 @@ class MainRNN():
 
 		# transpose output back
 		outputs = tf.transpose(outputs, [1, 0, 2])
-		outputs = tf.reshape(outputs, [-1, self.hidden_layer])
+		# outputs = tf.reshape(outputs, [outputs.get_shape()[-1], self.hidden_layer])
+
+	    # Hack to build the indexing and retrieve the right output.
+	    # Start indices for each sample
+		index = tf.range(0, tf.shape(outputs)[0]) * X_seq_size + (X_seq_size - 1)
+	    # Indexing
+		outputs = tf.gather(tf.reshape(outputs, [-1, self.hidden_layer]), index)
 
 		# model(logits)
 
@@ -91,14 +98,14 @@ class MainRNN():
 		prediction = tf.matmul(outputs, weights) + biases
 
 		# cost function
-		loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=prediction, labels=tfY))
+		loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=prediction, labels=tfY))
 
 		# optimizer
 		optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001).minimize(loss)
 
 		# evaluate model
-		correct_pred = tf.math.less(tf.math(prediction - tfY), tf.multiply(tfY))
-		accuracy = tf.divide(correct_pred, Y_sample_size)
+		correct_pred = tf.cast(tf.less(tf.abs(prediction - tfY), tf.multiply(tfY, self.error_rate)), tf.float32)
+		# accuracy = tf.divide(correct_pred, Y_sample_size)
 
 		# cost[] and accuracies[]
 		costs = []
@@ -120,21 +127,20 @@ class MainRNN():
 				for batch in range(X_sample_size):
 					batchX = X[batch]
 					batchY = Y[batch]
-					_, cost_out, accuracy_out = sess.run([optimizer, loss, accuracy], feed_dict={tfX: batchX, tfY: batchY})
-					
-					cost += cost_out
-					accuracy += accuracy_out
                     
-					print('cost: ' + cost)
-					print('accuracy: ' + accuracy)
+					_, cost_out, correct_pred_out = sess.run([optimizer, loss, prediction], feed_dict={tfX: batchX.reshape(X_seq_size, 1, X_features_size), tfY: batchY.reshape(1, self.output_feature_size)})
+					
+					correct_pred = tf.cast(tf.less(tf.cast(tf.abs(correct_pred_out - batchY), tf.float64), tf.multiply(batchY, self.error_rate)), tf.float32)
+					cost += cost_out
+					accuracy += correct_pred.eval()[0][0]
+					print('correct_pred_out', correct_pred_out[0][0])
 
 				costs.append(cost)
-				accuracies.append(accuracy)
-				print('epoch: ' + epoch)
+				accuracies.append(accuracy / (batch + 1))
+				print('accuracy: ', accuracy)
+				print('batch: ', batch)
+				print('accuracy / batch', accuracy / (batch + 1))
 
-		plt.plot(costs)
-		plt.show()
-        
 		plt.plot(accuracies)
 		plt.show()
 
@@ -144,4 +150,4 @@ class MainRNN():
 
 
 if __name__ == '__main__':
-    MainRNN().run_prediction()
+    X, Y = MainRNN().run_prediction()
