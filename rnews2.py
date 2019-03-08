@@ -4,11 +4,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.utils import shuffle
 
-
-# TODO: 
-# 1. rewrite pre-processing
-# 2. fix batch problem
-
 class MainRNN():
 	def __init__(self):
 		self.data_time_range=7
@@ -16,10 +11,8 @@ class MainRNN():
 		self.hidden_layer=1
 		self.output_feature_size=1
 		self.epochs=3
-		self.data_point=88434
-		self.data_size=self.seq_size*self.data_point
 		self.error_rate=0.1
-		self.batch_size=2
+		self.batch_size=64
 
 	def x_y_to_seq(self, X, Y):
 		# X = [[[yesterday_stock_data(5)], [today_stock_data(5)], [tomorrow_stock_data(5)], ...batch_size], [repeat]]
@@ -34,32 +27,12 @@ class MainRNN():
 
 	def get_formated_data(self):
 		
-		df = pd.read_csv('all_stocks_5yr.csv')
-		df = df.sort_values('date').reset_index(drop=True)
+		dfX = pd.read_csv('X_preprocessed_data.csv', header=None)
+		dfY = pd.read_csv('Y_preprocessed_data.csv', header=None)
 		
-		# process different stock symbols
-		df_symbols_encoded = pd.get_dummies(df, columns=['Name'], prefix=['symbol'])[:self.data_size]
+		X, Y = self.x_y_to_seq(dfX.values, dfY.values)
 
-		# match X and Y with date
-		X = []
-		Y = []
-		for index, row in df_symbols_encoded.iterrows():
-		    X.append(row.values[1:])
-		    y_val = df.loc[(df['Name'] == "AAPL") & (df['date'] == row['date'])].values[0][4] # close price
-		    Y.append(y_val)
-		    print(index)
-
-		self.save_to_csv(X, Y)
-		
-		# dfX = pd.read_csv('X_preprocessed_data.csv', header=None)
-		# dfY = pd.read_csv('Y_preprocessed_data.csv', header=None)
-		
-		# X, Y = self.x_y_to_seq(dfX.values, dfY.values)
-
-		# # what should be the format of Y
-		# # regressor? classifier?
-
-		# return np.array(X), np.array(Y)
+		return np.array(X), np.array(Y)
 
 		
 	def process_train(self, X, Y):
@@ -165,16 +138,16 @@ class MainRNN():
 		self.process_train(X, Y)
 
 	def save_to_csv(self, X, Y):
-		
-		for row in range(len(X)):
-			np.savetxt("X_preprocessed_data.csv", X, delimiter=",")
+		with open('X_preprocessed_data.csv', 'ab') as f:
+			for row in range(len(X)):
+				np.savetxt(f, X, delimiter=",")
 
 
-		for row in range(len(Y)):
-			np.savetxt("Y_preprocessed_data.csv", Y, delimiter=",")
+		with open('Y_preprocessed_data.csv', 'ab') as f:
+			for row in range(len(Y)):
+				np.savetxt(f, Y, delimiter=",")
 
 
 if __name__ == '__main__':
-	MainRNN().get_formated_data()
-    # X, Y = MainRNN().run_prediction()
+    MainRNN().run_prediction()
 
