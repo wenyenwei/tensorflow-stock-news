@@ -4,6 +4,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.utils import shuffle
 
+
+# TODO: 
+# 1. rewrite pre-processing
+# 2. fix batch problem
+
 class MainRNN():
 	def __init__(self):
 		self.data_time_range=7
@@ -11,6 +16,11 @@ class MainRNN():
 		self.hidden_layer=1
 		self.output_feature_size=1
 		self.epochs=3
+		# 88434
+		# self.current_index=6
+		# self.current_escape_index=self.current_index - 1
+		# self.data_point=50*self.current_index		
+		# self.data_size=self.seq_size*self.data_point
 		self.error_rate=0.1
 		self.batch_size=64
 
@@ -27,10 +37,31 @@ class MainRNN():
 
 	def get_formated_data(self):
 		
+		# df = pd.read_csv('all_stocks_5yr.csv')
+		# df = df.sort_values('date').reset_index(drop=True)
+		
+		# # process different stock symbols
+		# df_symbols_encoded = pd.get_dummies(df, columns=['Name'], prefix=['symbol'])[:self.data_size]
+
+		# # match X and Y with date
+		# X = []
+		# Y = []
+		# for index, row in df_symbols_encoded.iterrows():
+		# 	if index >= 50*7*(self.current_escape_index):
+		# 	    X.append(row.values[1:])
+		# 	    y_val = df.loc[(df['Name'] == "AAPL") & (df['date'] == row['date'])].values[0][4] # close price
+		# 	    Y.append(y_val)
+		# 	    print(index)
+
+		# self.save_to_csv(X, Y)
+		
 		dfX = pd.read_csv('X_preprocessed_data.csv', header=None)
 		dfY = pd.read_csv('Y_preprocessed_data.csv', header=None)
 		
 		X, Y = self.x_y_to_seq(dfX.values, dfY.values)
+
+		# what should be the format of Y
+		# regressor? classifier?
 
 		return np.array(X), np.array(Y)
 
@@ -39,7 +70,6 @@ class MainRNN():
 
 		# get shape X (N, T, D)
 		X_sample_size, X_seq_size, X_features_size = X.shape
-		print("X_seq_size: ", X_seq_size)
 
 		# get shape Y (K)
 		Y_sample_size = Y.shape
@@ -83,7 +113,8 @@ class MainRNN():
 		prediction = tf.matmul(outputs, weights) + biases
 
 		# cost function
-		loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=prediction, labels=tfY))
+		# loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=prediction, labels=tfY))
+		loss = tf.reduce_mean([prediction ,tfY])
 
 		# optimizer
 		optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001).minimize(loss)
@@ -119,16 +150,16 @@ class MainRNN():
 					print('cost_out: ',cost_out)
 					cost += cost_out
 					accuracy += correct_pred.eval()[0][0]
-					print('prediction_out', prediction_out[0][0])
-					print('batchY', batchY)
-					print('correct_pred.eval()[0][0]', correct_pred.eval()[0][0])
+					# print('prediction_out', prediction_out)
+					# print('batchY', batchY)
+					# print('correct_pred.eval()[0][0]', correct_pred.eval()[0][0])
 
 				costs.append(cost)
 				accuracies.append(accuracy / (batch + 1))
-				print('cost: ', cost)
-				print('accuracy: ', accuracy)
-				print('batch: ', batch)
-				print('accuracy / batch', accuracy / (batch + 1))
+				# print('cost: ', cost)
+				# print('accuracy: ', accuracy)
+				# print('batch: ', batch)
+				# print('accuracy / batch', accuracy / (batch + 1))
 
 		plt.plot(costs)
 		plt.show()
