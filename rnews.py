@@ -1,95 +1,184 @@
-import pandas as pd
-import matplotlib.pyplot as plt
-import numpy as np
 import tensorflow as tf
-from sklearn.model_selection import train_test_split
-from sklearn.feature_extraction.text import CountVectorizer
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.utils import shuffle
 
 
-tf.reset_default_graph()
-lstm_graph = tf.Graph()
+# TODO: 
+# 1. rewrite pre-processing
+# 2. fix batch problem
 
-# Dataset downloaded from kaggle: https://www.kaggle.com/camnugent/sandp500/home
-df = pd.read_csv('all_stocks_5yr.csv') 
-df = df.sort_values('date')
+class MainRNN():
+	def __init__(self):
+		self.data_time_range=7
+		self.seq_size=self.data_time_range
+		self.hidden_layer=1
+		self.output_feature_size=1
+		self.epochs=3
+		# 88434
+		# self.current_index=6
+		# self.current_escape_index=self.current_index - 1
+		# self.data_point=50*self.current_index		
+		# self.data_size=self.seq_size*self.data_point
+		self.error_rate=0.1
+		self.batch_size=64
+
+	def x_y_to_seq(self, X, Y):
+		# X = [[[yesterday_stock_data(5)], [today_stock_data(5)], [tomorrow_stock_data(5)], ...batch_size], [repeat]]
+		newX = []
+		newY = []
+		for i in range(int(len(X) / self.seq_size)):
+			print((i + 1) * self.seq_size - 1)
+			newX.append(X[i * self.seq_size : (i + 1) * self.seq_size])
+			newY.append(Y[(i + 1) * self.seq_size - 1])
+
+		return newX, newY
+
+	def get_formated_data(self):
+		
+		# df = pd.read_csv('all_stocks_5yr.csv')
+		# df = df.sort_values('date').reset_index(drop=True)
+		
+		# # process different stock symbols
+		# df_symbols_encoded = pd.get_dummies(df, columns=['Name'], prefix=['symbol'])[:self.data_size]
+
+		# # match X and Y with date
+		# X = []
+		# Y = []
+		# for index, row in df_symbols_encoded.iterrows():
+		# 	if index >= 50*7*(self.current_escape_index):
+		# 	    X.append(row.values[1:])
+		# 	    y_val = df.loc[(df['Name'] == "AAPL") & (df['date'] == row['date'])].values[0][4] # close price
+		# 	    Y.append(y_val)
+		# 	    print(index)
+
+		# self.save_to_csv(X, Y)
+		
+		dfX = pd.read_csv('X_preprocessed_data.csv', header=None)
+		dfY = pd.read_csv('Y_preprocessed_data.csv', header=None)
+		
+		X, Y = self.x_y_to_seq(dfX.values, dfY.values)
+
+		# what should be the format of Y
+		# regressor? classifier?
+
+		return np.array(X), np.array(Y)
+
+		
+	def process_train(self, X, Y):
+
+		# get shape X (N, T, D)
+		X_sample_size, X_seq_size, X_features_size = X.shape
+		print("X_seq_size: ", X_seq_size)
+
+		# get shape Y (K)
+		Y_sample_size = Y.shape
+
+		# init weight and bias
+		weights = tf.Variable(tf.random_normal([self.hidden_layer, self.output_feature_size]))
+		biases = tf.Variable(tf.random_normal([self.output_feature_size]))
+
+		# placeholder for graph input
+		tfX = tf.placeholder(tf.float32, shape=[None, X_seq_size, X_features_size], name='inputX')
+		tfY = tf.placeholder(tf.float32, shape=[None, self.output_feature_size], name='inputY')
+
+		# transposeX
+		tfX = tf.transpose(tfX, [1, 0, 2])
+
+		# target = reshape Y
+
+		# define lstm cell
+		lstmCell = tf.nn.rnn_cell.BasicLSTMCell(self.hidden_layer)
+
+		# create RNN unit
+		outputs, states = tf.nn.dynamic_rnn(cell=lstmCell, inputs=tfX, dtype=tf.float32)
+
+		# get rnn output
+		outputs = tf.stack(outputs)
+
+		# transpose output back
+		outputs = tf.transpose(outputs, [1, 0, 2])
+		# outputs = tf.reshape(outputs, [outputs.get_shape()[-1], self.hidden_layer])
+
+	    # Hack to build the indexing and retrieve the right output.
+	    # Start indices for each sample
+		index = tf.range(0, tf.shape(outputs)[0]) * X_seq_size + (X_seq_size - 1)
+	    # Indexing
+		outputs = tf.gather(tf.reshape(outputs, [-1, self.hidden_layer]), index)
+
+		# model(logits)
 
 
-# Split data into test, train set
-X = []
-Y = []
+		# prediction
+		prediction = tf.matmul(outputs, weights) + biases
 
-df_grouped = df.groupby('date', as_index=False).sum()
-# start from here again
-for index, row in df_grouped.iterrows():
-    X.append(row.values[1:])
-    # change to 5 again
-    y_val = df.loc[(df['Name'] == "AAPL") & (df['date'] == row['date'])].values[0][1:6]
-    Y.append(y_val)
-    print (index)
-      
-Xtrain, Xtest, Ytrain, Ytest = train_test_split(X, Y, test_size=0.20)
+		# cost function
+		loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=prediction, labels=tfY))
 
-###################
-hidden_size = 128
-num_of_layers = 3
-batch_size = 1
-max_epoch = 50
-num_of_step = 5
-input_size = 1
+		# optimizer
+		optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001).minimize(loss)
 
-with lstm_graph.as_default():    
-    def lstm_cell():
-        return tf.contrib.rnn.BasicLSTMCell(hidden_size)
-    
-    stacked_lstm_cell = tf.contrib.rnn.MultiRNNCell(
-            [lstm_cell() for _ in range(num_of_layers)
-            ]) if num_of_layers > 1 else lstm_cell()
-    
-    words = tf.placeholder(tf.float32, [None, num_of_step, input_size])
-    target = tf.placeholder(tf.float32, [None, input_size])
+		# evaluate model
+		correct_pred = tf.cast(tf.less(tf.abs(prediction - tfY), tf.multiply(tfY, self.error_rate)), tf.float32)
+		# accuracy = tf.divide(correct_pred, Y_sample_size)
 
-    weight = tf.Variable(tf.truncated_normal([num_of_step, input_size]))
-    bias = tf.Variable(tf.constant(0.1, shape=[input_size]))
-    
-    
-    data, _ = tf.nn.dynamic_rnn(cell=stacked_lstm_cell, inputs=words, dtype=tf.float32)
-    data = tf.transpose(data, [1, 0, 2])
-    last = tf.gather(data, int(data.get_shape()[0]) - 1, name="last_lstm_output")
-    
-    prediction = tf.matmul(weight, last) + bias
-    
-    loss = tf.norm(prediction - target, ord='euclidean') #, axis=None, keepdims=None, name=None, keepdims=None
-    # loss = tf.reduce_mean(tf.square(prediction - targets))
+		# cost[] and accuracies[]
+		costs = []
+		accuracies = []
 
-    optimizer = tf.train.GradientDescentOptimizer(learning_rate = 0.001).minimize(loss)
+		# global init
+		init = tf.global_variables_initializer()
 
-with tf.Session(graph=lstm_graph) as sess:
-    tf.global_variables_initializer().run()
+		# start training
+		with tf.Session() as sess:
 
-    for i in range(len(Xtrain)):
-        current_loss, _ = sess.run(
-            [loss, optimizer], 
-            feed_dict={
-                words: [Xtrain[i].reshape(5,1)],
-                target: Ytrain[i].reshape(5,1)
-            }
-        )
-        print("current_loss", current_loss)
+			sess.run(init)
 
-    saver = tf.train.Saver()
-    saver.save(sess, "./trained_model", global_step=max_epoch)
+			for epoch in range(self.epochs):
 
-    ### Predictions
-    saver.restore(sess,"./trained_model-50")
-    
-    for i in range(len(Xtest)):
-        
-        y_pred = sess.run(
-                data,
-                feed_dict={
-                        words: [Xtest[i].reshape(5,1)]
-                        }
-                )
-        
-        print("y_pred", y_pred)
-        
+				X, Y = shuffle(X, Y)				
+				cost = 0
+				accuracy = 0
+				for batch in range(X_sample_size - self.batch_size):
+					batchX = X[batch:batch+self.batch_size]
+					batchY = Y[batch:batch+self.batch_size]
+
+					_, cost_out, prediction_out = sess.run([optimizer, loss, prediction], feed_dict={tfX: batchX.reshape(X_seq_size, self.batch_size, X_features_size), tfY: batchY.reshape(self.batch_size, self.output_feature_size)})
+					
+					correct_pred = tf.cast(tf.less(tf.cast(tf.abs(prediction_out - batchY), tf.float64), tf.multiply(batchY, self.error_rate)), tf.float32)
+					print('cost_out: ',cost_out)
+					cost += cost_out
+					accuracy += correct_pred.eval()[0][0]
+					print('prediction_out', prediction_out[0][0])
+					print('batchY', batchY)
+					print('correct_pred.eval()[0][0]', correct_pred.eval()[0][0])
+
+				costs.append(cost)
+				accuracies.append(accuracy / (batch + 1))
+				print('cost: ', cost)
+				print('accuracy: ', accuracy)
+				print('batch: ', batch)
+				print('accuracy / batch', accuracy / (batch + 1))
+
+		plt.plot(costs)
+		plt.show()
+
+	def run_prediction(self):
+		X, Y = self.get_formated_data()
+		self.process_train(X, Y)
+
+	def save_to_csv(self, X, Y):
+		with open('X_preprocessed_data.csv', 'ab') as f:
+			for row in range(len(X)):
+				np.savetxt(f, X, delimiter=",")
+
+
+		with open('Y_preprocessed_data.csv', 'ab') as f:
+			for row in range(len(Y)):
+				np.savetxt(f, Y, delimiter=",")
+
+
+if __name__ == '__main__':
+    MainRNN().run_prediction()
+
