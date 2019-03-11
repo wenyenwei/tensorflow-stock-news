@@ -2,12 +2,20 @@
 
 Predicting a Stock Price using [S&P 500 data](https://www.kaggle.com/camnugent/sandp500) and [news](https://www.reuters.com/finance/stocks/company-news/AAPL.OQ).
 
+## Setup
+
+To install dependencies, run command
+
+```
+$ pip install --user -e .
+```
+
 ## Target Companies
 * [:apple: Apple](https://www.apple.com/)
 
 ## File Index
 
-### :bento:  Parsing News Data 
+### :bento:  Parsing News Data
 
 [Webcrawling Reuters News - NodeJs + Cheerio](https://github.com/wenyenwei/tensorflow-stock-news/blob/master/rnews.js)
 

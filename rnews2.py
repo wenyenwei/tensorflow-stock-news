@@ -21,7 +21,15 @@ class MainRNN():
 
 	# MRJ: note the use of kwargs
 	def __init__(self, **kwargs):
-		self.data_time_range=7
+		#self.data_time_range=7
+        # MRJ: using 7-grams for training the RNN implies that we
+        # have an astronomical number of possible input sequences...
+        # Let's try first with 2, which is equivalent to assume
+        # that the time series is a Markov chain. This assumption
+        # may be wrong, as we do not capture every factor that affects
+        # stock prices with the features used in the training set.
+        # Remains to be seen how wrong it is.
+        self.data_time_range=2
 		self.seq_size=self.data_time_range
 		self.hidden_layer=1
 		self.output_feature_size=1
@@ -59,7 +67,9 @@ class MainRNN():
 
 		# get shape X (N, T, D)
 		X_sample_size, X_seq_size, X_features_size = X.shape
-
+        logging.info("Size of training data set: {}".format(X_sample_size))
+        logging.info("Size of sequence: {}".format(X_seq_size))
+        logging.info("Feature set size: {}".format(X_features_size))
 		# get shape Y (K)
 		Y_sample_size = Y.shape
 
@@ -126,6 +136,7 @@ class MainRNN():
 
 			for epoch in tqdm(range(self.epochs)):
 				logging.info("Epoch {} started".format(epoch))
+
 				X, Y = shuffle(X, Y)
 				cost = 0
 				accuracy = 0
