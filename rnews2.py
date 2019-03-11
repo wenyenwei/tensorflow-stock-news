@@ -1,5 +1,6 @@
 import logging # MRJ: for creating logs
 import argparse # MRJ: for parsing program arguments
+from tqdm import tqdm # MRJ: for progress bars
 
 import tensorflow as tf
 import pandas as pd
@@ -17,12 +18,14 @@ from sklearn.utils import shuffle
 # 2. fix batch problem
 
 class MainRNN():
-	def __init__(self):
+
+	# MRJ: note the use of kwargs
+	def __init__(self, **kwargs):
 		self.data_time_range=7
 		self.seq_size=self.data_time_range
 		self.hidden_layer=1
 		self.output_feature_size=1
-		self.epochs=3
+		self.epochs= kwargs['epochs']
 
 		self.error_rate=0.1
 		self.batch_size=64
@@ -31,8 +34,8 @@ class MainRNN():
 		# X = [[[yesterday_stock_data(5)], [today_stock_data(5)], [tomorrow_stock_data(5)], ...batch_size], [repeat]]
 		newX = []
 		newY = []
-		for i in range(int(len(X) / self.seq_size)):
-			print((i + 1) * self.seq_size - 1)
+		for i in tqdm(range(int(len(X) / self.seq_size))):
+			#print((i + 1) * self.seq_size - 1)
 			newX.append(X[i * self.seq_size : (i + 1) * self.seq_size])
 			newY.append(Y[(i + 1) * self.seq_size - 1])
 
@@ -43,6 +46,7 @@ class MainRNN():
 		dfX = pd.read_csv('X_preprocessed_data.csv', header=None)
 		dfY = pd.read_csv('Y_preprocessed_data.csv', header=None)
 
+		logging.info("Arranging training data into sequences...")
 		X, Y = self.x_y_to_seq(dfX.values, dfY.values)
 
 		# what should be the format of Y
@@ -120,8 +124,8 @@ class MainRNN():
 
 			sess.run(init)
 
-			for epoch in range(self.epochs):
-
+			for epoch in tqdm(range(self.epochs)):
+				logging.info("Epoch {} started".format(epoch))
 				X, Y = shuffle(X, Y)
 				cost = 0
 				accuracy = 0
@@ -132,7 +136,6 @@ class MainRNN():
 					_, cost_out, prediction_out = sess.run([optimizer, loss, prediction], feed_dict={tfX: batchX.reshape(X_seq_size, self.batch_size, X_features_size), tfY: batchY.reshape(self.batch_size, self.output_feature_size)})
 
 					correct_pred = tf.cast(tf.less(tf.cast(tf.abs(prediction_out - batchY), tf.float64), tf.multiply(batchY, self.error_rate)), tf.float32)
-					print('cost_out: ',cost_out)
 					cost += cost_out
 					accuracy += correct_pred.eval()[0][0]
 					# print('prediction_out', prediction_out)
@@ -141,16 +144,31 @@ class MainRNN():
 
 				costs.append(cost)
 				accuracies.append(accuracy / (batch + 1))
+				# MRJ: We log the last value of each of these
+				logging.info('Epoch {} cost: {}'.format(epoch, costs[-1]))
+				logging.info('Epoch {} accuracy: {}'.format(epoch, accuracies[-1]))
 				# print('cost: ', cost)
 				# print('accuracy: ', accuracy)
 				# print('batch: ', batch)
 				# print('accuracy / batch', accuracy / (batch + 1))
 
-		plt.plot(costs)
-		plt.show()
+		# MRJ: see notebook 'notebooks/tutorial/000 - Introduction to Jupyter Notebooks.ipynb'
+		#plt.plot(costs)
+		#plt.show()
+		logging.info("Storing training performance")
+		# MRJ: Next we create a pandas dataframe from a dictionary
+		performance_df = { 'epoch' : [k for k in range(self.epochs)],
+							'cost' : costs,
+							'accuracy' : accuracies}
+		performance_df = pd.DataFrame(performance_df)
+		performance_df.to_csv("training_performance.csv")
 
 	def run_prediction(self):
+		logging.info("Loading training and test data...")
+		print("Loading training and test data...")
 		X, Y = self.get_formated_data()
+		logging.info("Processing training data...")
+		print("Proccessing training data...")
 		self.process_train(X, Y)
 
 
@@ -161,12 +179,25 @@ def parse_arguments():
 
 	parser = argparse.ArgumentParser()
 
-	parser.add_argument("--seed", help="Sets the seed of the random number generator (defaults: 1337)", default=1337)
+	parser.add_argument("--seed", help="Sets the seed of the random number generator (defaults: 1337)", type=int, default=1337)
+	parser.add_argument("--debug", help="Activate verbose logging")
+	parser.add_argument("--epochs", help="Number of training epochs", type=int, default=3)
 
 	return parser.parse_args()
 
 def main():
 	args = parse_arguments()
+
+	# MRJ: we setup the behaviour of the logging module
+	log_level = logging.INFO
+	if args.debug:
+		# MRJ: when the debug flag is on we activate more verbose logging
+		log_level = logging.DEBUG
+
+	# @TODO: make the name of the log file to be configurable via the
+	# command line
+	logging.basicConfig(filename='rnews2.log', format='%(levelname)s:%(asctime)s: %(message)s', level=log_level)
+
 
 	# MRJ: One important detail is to always fix the seed of the training
 	# process for repeatibility. Learning algorithms are most often applications
@@ -176,9 +207,14 @@ def main():
 	# and most importantly, perform simple meta-optimization by running
 	# several times the training process and then selecting the "best"
 	# performing set of parameters.
-	np.random.seed(args.rng_seed)
+	np.random.seed(args.seed)
+	logging.debug("RNG seed fixed to: {}".format(args.seed))
 
-	MainRNN().run_prediction()
+	logging.info("Training started...")
+	print("Training started...")
+
+	# MRJ: note the use of kwargs
+	MainRNN(epochs=args.epochs).run_prediction()
 
 if __name__ == '__main__':
 	# MRJ: note that I am using an old (and in my opinion useful) idiom to
