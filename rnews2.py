@@ -3,11 +3,14 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.utils import shuffle
+from sklearn import preprocessing
+from sklearn.feature_extraction.text import CountVectorizer
+
 
 
 # TODO: 
-# 1. rewrite pre-processing
-# 2. fix batch problem
+# 1. append sentiment analysis
+# 2. deep reinforcement learning
 
 class MainRNN():
 	def __init__(self):
@@ -17,13 +20,13 @@ class MainRNN():
 		self.output_feature_size=1
 		self.epochs=3
 		# 88434
-		# self.current_index=6
-		# self.current_escape_index=self.current_index - 1
-		# self.data_point=50*self.current_index		
-		# self.data_size=self.seq_size*self.data_point
+		self.current_index=1
+		self.current_escape_index=0
+		self.data_point=50*self.current_index		
+		self.data_size=self.seq_size*self.data_point
 		self.error_rate=0.1
-		self.batch_size=64
-
+		self.batch_size=2
+# 
 	def x_y_to_seq(self, X, Y):
 		# X = [[[yesterday_stock_data(5)], [today_stock_data(5)], [tomorrow_stock_data(5)], ...batch_size], [repeat]]
 		newX = []
@@ -37,28 +40,43 @@ class MainRNN():
 
 	def get_formated_data(self):
 		
-		# df = pd.read_csv('all_stocks_5yr.csv')
-		# df = df.sort_values('date').reset_index(drop=True)
-		
-		# # process different stock symbols
-		# df_symbols_encoded = pd.get_dummies(df, columns=['Name'], prefix=['symbol'])[:self.data_size]
+		df = pd.read_csv('all_stocks_5yr.csv')
+		df = df.sort_values('date').reset_index(drop=True)
+		df_text = pd.read_csv('rnews_apple.txt', sep=': \"', header=None, names=['date', 'text'], dtype='str')
+		count_vectorizer = CountVectorizer(decode_error='ignore',binary='boolean')
+		df_text['text'] = count_vectorizer.fit_transform(df_text['text'])
 
-		# # match X and Y with date
-		# X = []
-		# Y = []
-		# for index, row in df_symbols_encoded.iterrows():
-		# 	if index >= 50*7*(self.current_escape_index):
-		# 	    X.append(row.values[1:])
-		# 	    y_val = df.loc[(df['Name'] == "AAPL") & (df['date'] == row['date'])].values[0][4] # close price
-		# 	    Y.append(y_val)
-		# 	    print(index)
+		# process different stock symbols
+		df_symbols_encoded = pd.get_dummies(df, columns=['Name'], prefix=['symbol'])[:self.data_size]
+
+		# match X and Y with date
+		X = []
+		Y = []
+		for index, row in df_symbols_encoded.iterrows():
+			if index >= 50*7*(self.current_escape_index):
+				row_data_array = row.values[1:]
+				row_day = row['date'].split('-')[2]
+				row_mon = row['date'].split('-')[1]
+				row_year = row['date'].split('-')[0]
+				text_val = df_text.loc[(df_text['date'] == row_mon + row_day + row_year)].values
+				if len(text_val) > 0: 
+					print("before: ", row_data_array.shape)
+
+					row_data_array = np.append(row_data_array, [text_val[0][1]])
+					print("after: ", row_data_array.shape)
+				else:
+					row_data_array = np.append(row_data_array, np.zeros(df_text['text'][0].shape, dtype=np.int))
+				X.append(row_data_array)
+				y_val = df.loc[(df['Name'] == "AAPL") & (df['date'] == row['date'])].values[0][4] # close price
+				Y.append(y_val)
+				print(index)
 
 		# self.save_to_csv(X, Y)
 		
-		dfX = pd.read_csv('X_preprocessed_data.csv', header=None)
-		dfY = pd.read_csv('Y_preprocessed_data.csv', header=None)
+		# dfX = pd.read_csv('X_preprocessed_data.csv', header=None)
+		# dfY = pd.read_csv('Y_preprocessed_data.csv', header=None)
 		
-		X, Y = self.x_y_to_seq(dfX.values, dfY.values)
+		# X, Y = self.x_y_to_seq(dfX.values, dfY.values)
 
 		# what should be the format of Y
 		# regressor? classifier?
@@ -136,6 +154,7 @@ class MainRNN():
 			sess.run(init)
 
 			for epoch in range(self.epochs):
+				print('===== EPOCH ======: ', epoch)
 
 				X, Y = shuffle(X, Y)				
 				cost = 0
@@ -148,24 +167,25 @@ class MainRNN():
 					
 					correct_pred = tf.cast(tf.less(tf.cast(tf.abs(prediction_out - batchY), tf.float64), tf.multiply(batchY, self.error_rate)), tf.float32)
 					print('cost_out: ',cost_out)
-					cost += cost_out
-					accuracy += correct_pred.eval()[0][0]
+					# cost += cost_out
+					# accuracy += correct_pred.eval()[0][0]
 					# print('prediction_out', prediction_out)
 					# print('batchY', batchY)
 					# print('correct_pred.eval()[0][0]', correct_pred.eval()[0][0])
 
-				costs.append(cost)
-				accuracies.append(accuracy / (batch + 1))
+					costs.append(cost_out)
+					# accuracies.append(accuracy / (batch + 1))
 				# print('cost: ', cost)
 				# print('accuracy: ', accuracy)
 				# print('batch: ', batch)
 				# print('accuracy / batch', accuracy / (batch + 1))
 
-		plt.plot(costs)
-		plt.show()
+				plt.plot(costs)
+				plt.show()
 
 	def run_prediction(self):
 		X, Y = self.get_formated_data()
+		print("X.shape= ", X.shape)
 		self.process_train(X, Y)
 
 	def save_to_csv(self, X, Y):
