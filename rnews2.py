@@ -21,22 +21,21 @@ class MainRNN():
 
     # MRJ: note the use of kwargs
     def __init__(self, **kwargs):
-    #self.data_time_range=7
-    # MRJ: using 7-grams for training the RNN implies that we
-    # have an astronomical number of possible input sequences...
-    # Let's try first with 2, which is equivalent to assume
-    # that the time series is a Markov chain. This assumption
-    # may be wrong, as we do not capture every factor that affects
-    # stock prices with the features used in the training set.
-    # Remains to be seen how wrong it is.
-    self.data_time_range= 2
-    self.seq_size=self.data_time_range
-    self.hidden_layer=1
-    self.output_feature_size=1
-    self.epochs= kwargs['epochs']
-
-    self.error_rate=0.1
-    self.batch_size=64
+        #self.data_time_range=7
+        # MRJ: using 7-grams for training the RNN implies that we
+        # have an astronomical number of possible input sequences...
+        # Let's try first with 2, which is equivalent to assume
+        # that the time series is a Markov chain. This assumption
+        # may be wrong, as we do not capture every factor that affects
+        # stock prices with the features used in the training set.
+        # Remains to be seen how wrong it is.
+        self.data_time_range= 2
+        self.seq_size=self.data_time_range
+        self.hidden_layer=1
+        self.output_feature_size=1
+        self.epochs= kwargs['epochs']
+        self.error_rate=0.1
+        self.batch_size=64
 
     def x_y_to_seq(self, X, Y):
         # X = [[[yesterday_stock_data(5)], [today_stock_data(5)], [tomorrow_stock_data(5)], ...batch_size], [repeat]]
@@ -67,9 +66,9 @@ class MainRNN():
 
         # get shape X (N, T, D)
         X_sample_size, X_seq_size, X_features_size = X.shape
-    logging.info("Size of training data set: {}".format(X_sample_size))
-    logging.info("Size of sequence: {}".format(X_seq_size))
-    logging.info("Feature set size: {}".format(X_features_size))
+        logging.info("Size of training data set: {}".format(X_sample_size))
+        logging.info("Size of sequence: {}".format(X_seq_size))
+        logging.info("Feature set size: {}".format(X_features_size))
         # get shape Y (K)
         Y_sample_size = Y.shape
 
@@ -99,10 +98,10 @@ class MainRNN():
         outputs = tf.transpose(outputs, [1, 0, 2])
         # outputs = tf.reshape(outputs, [outputs.get_shape()[-1], self.hidden_layer])
 
-    # Hack to build the indexing and retrieve the right output.
-    # Start indices for each sample
+        # Hack to build the indexing and retrieve the right output.
+        # Start indices for each sample
         index = tf.range(0, tf.shape(outputs)[0]) * X_seq_size + (X_seq_size - 1)
-    # Indexing
+        # Indexing
         outputs = tf.gather(tf.reshape(outputs, [-1, self.hidden_layer]), index)
 
         # model(logits)
