@@ -43,8 +43,8 @@ class MainRNN():
 
 	def get_formated_data(self):
 
-		dfX = pd.read_csv('X_preprocessed_data.csv', header=None)
-		dfY = pd.read_csv('Y_preprocessed_data.csv', header=None)
+		dfX = pd.read_csv('X_preprocessed_data.csv.gz', header=None)
+		dfY = pd.read_csv('Y_preprocessed_data.csv.gz', header=None)
 
 		logging.info("Arranging training data into sequences...")
 		X, Y = self.x_y_to_seq(dfX.values, dfY.values)
