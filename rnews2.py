@@ -1,11 +1,18 @@
+import logging # MRJ: for creating logs
+import argparse # MRJ: for parsing program arguments
+
 import tensorflow as tf
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
+
+# MRJ: I advise to use Jupyter notebooks for visualization and analysis
+# of results
+#import matplotlib.pyplot as plt
+
 from sklearn.utils import shuffle
 
 
-# TODO: 
+# TODO:
 # 1. rewrite pre-processing
 # 2. fix batch problem
 
@@ -16,11 +23,7 @@ class MainRNN():
 		self.hidden_layer=1
 		self.output_feature_size=1
 		self.epochs=3
-		# 88434
-		# self.current_index=6
-		# self.current_escape_index=self.current_index - 1
-		# self.data_point=50*self.current_index		
-		# self.data_size=self.seq_size*self.data_point
+
 		self.error_rate=0.1
 		self.batch_size=64
 
@@ -36,28 +39,10 @@ class MainRNN():
 		return newX, newY
 
 	def get_formated_data(self):
-		
-		# df = pd.read_csv('all_stocks_5yr.csv')
-		# df = df.sort_values('date').reset_index(drop=True)
-		
-		# # process different stock symbols
-		# df_symbols_encoded = pd.get_dummies(df, columns=['Name'], prefix=['symbol'])[:self.data_size]
 
-		# # match X and Y with date
-		# X = []
-		# Y = []
-		# for index, row in df_symbols_encoded.iterrows():
-		# 	if index >= 50*7*(self.current_escape_index):
-		# 	    X.append(row.values[1:])
-		# 	    y_val = df.loc[(df['Name'] == "AAPL") & (df['date'] == row['date'])].values[0][4] # close price
-		# 	    Y.append(y_val)
-		# 	    print(index)
-
-		# self.save_to_csv(X, Y)
-		
 		dfX = pd.read_csv('X_preprocessed_data.csv', header=None)
 		dfY = pd.read_csv('Y_preprocessed_data.csv', header=None)
-		
+
 		X, Y = self.x_y_to_seq(dfX.values, dfY.values)
 
 		# what should be the format of Y
@@ -65,7 +50,7 @@ class MainRNN():
 
 		return np.array(X), np.array(Y)
 
-		
+
 	def process_train(self, X, Y):
 
 		# get shape X (N, T, D)
@@ -137,7 +122,7 @@ class MainRNN():
 
 			for epoch in range(self.epochs):
 
-				X, Y = shuffle(X, Y)				
+				X, Y = shuffle(X, Y)
 				cost = 0
 				accuracy = 0
 				for batch in range(X_sample_size - self.batch_size):
@@ -145,7 +130,7 @@ class MainRNN():
 					batchY = Y[batch:batch+self.batch_size]
 
 					_, cost_out, prediction_out = sess.run([optimizer, loss, prediction], feed_dict={tfX: batchX.reshape(X_seq_size, self.batch_size, X_features_size), tfY: batchY.reshape(self.batch_size, self.output_feature_size)})
-					
+
 					correct_pred = tf.cast(tf.less(tf.cast(tf.abs(prediction_out - batchY), tf.float64), tf.multiply(batchY, self.error_rate)), tf.float32)
 					print('cost_out: ',cost_out)
 					cost += cost_out
@@ -168,17 +153,34 @@ class MainRNN():
 		X, Y = self.get_formated_data()
 		self.process_train(X, Y)
 
-	def save_to_csv(self, X, Y):
-		with open('X_preprocessed_data.csv', 'ab') as f:
-			for row in range(len(X)):
-				np.savetxt(f, X, delimiter=",")
 
+def parse_arguments():
+	# MRJ: the argparse module is the Python standard library module to
+	# process command line arguments
+	# https://docs.python.org/3/howto/argparse.html
 
-		with open('Y_preprocessed_data.csv', 'ab') as f:
-			for row in range(len(Y)):
-				np.savetxt(f, Y, delimiter=",")
+	parser = argparse.ArgumentParser()
 
+	parser.add_argument("--seed", help="Sets the seed of the random number generator (defaults: 1337)", default=1337)
+
+	return parser.parse_args()
+
+def main():
+	args = parse_arguments()
+
+	# MRJ: One important detail is to always fix the seed of the training
+	# process for repeatibility. Learning algorithms are most often applications
+	# of stochastic optimization, so you can definitely get substantially
+	# different results across several runs. Fixing the seed of the RNG
+	# allows you to get explicit control over this, replicate experiments,
+	# and most importantly, perform simple meta-optimization by running
+	# several times the training process and then selecting the "best"
+	# performing set of parameters.
+	np.random.seed(args.rng_seed)
+
+	MainRNN().run_prediction()
 
 if __name__ == '__main__':
-    MainRNN().run_prediction()
-
+	# MRJ: note that I am using an old (and in my opinion useful) idiom to
+	# structure Python scripts
+	main()
