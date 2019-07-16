@@ -13,14 +13,6 @@ Predicting a Stock Price using [S&P 500 data](https://www.kaggle.com/camnugent/s
 
 [Webcrawling Result - Apple Stock News from 2013-2018](https://github.com/wenyenwei/tensorflow-stock-news/blob/master/rnews_apple.txt)
 
-### :chart_with_upwards_trend:  Stock Price Graphs
-
-[Stock Price Graph 2013-2018](https://github.com/wenyenwei/tensorflow-stock-news/blob/master/data_image.png)
-
-[Stock Market Capital Graph 2013-2018](https://github.com/wenyenwei/tensorflow-stock-news/blob/master/data_image_vol.png)
-
-[Loss Graph - `21000 data` and `batch size 16` and `10 epoch`](https://github.com/wenyenwei/tensorflow-stock-news/blob/master/figure_1.png)
-
 ### :alembic: Training
 
 [:bookmark: Code](https://github.com/wenyenwei/tensorflow-stock-news/blob/master/pj.py)
