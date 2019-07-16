@@ -2,7 +2,7 @@
 
 Predicting a Stock Price using [S&P 500 data](https://www.kaggle.com/camnugent/sandp500) and [news](https://www.reuters.com/finance/stocks/company-news/AAPL.OQ).
 
-## Target Companies
+## Target Company
 * [:apple: Apple](https://www.apple.com/)
 
 ## File Index
@@ -23,10 +23,8 @@ Predicting a Stock Price using [S&P 500 data](https://www.kaggle.com/camnugent/s
 
 ### :alembic: Training
 
-[:bookmark: version1](https://github.com/wenyenwei/tensorflow-stock-news/blob/master/rnews.py)
-
-[:bookmark: :construction: WIP: version2](https://github.com/wenyenwei/tensorflow-stock-news/blob/master/rnews2.py)
+[:bookmark: Code](https://github.com/wenyenwei/tensorflow-stock-news/blob/master/pj.py)
 
 ### Report
 
-[:construction: Drafting Report](https://docs.google.com/document/d/1IXd_1U-Ucj39PColOH4dgrfw84PoLc9uKmLs0Wbm11M/edit?usp=sharing)
+[📜 Essay](https://drive.google.com/file/d/1iLDYNiabTysET_YxzdqUceMfhN0E1UOe/view?usp=sharing)
