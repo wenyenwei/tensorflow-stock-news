@@ -15,7 +15,7 @@ Predicting a Stock Price using [S&P 500 data](https://www.kaggle.com/camnugent/s
 
 ### :alembic: Training
 
-[:bookmark: Code](https://github.com/wenyenwei/tensorflow-stock-news/blob/master/pj.py)
+[:construction: :bookmark: Code (still modifying)](https://github.com/wenyenwei/tensorflow-stock-news/blob/master/pj.py)
 
 ### Report
 
